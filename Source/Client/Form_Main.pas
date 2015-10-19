@@ -24,7 +24,7 @@ uses
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Imaging.pngimage, Vcl.ExtCtrls,
   Vcl.StdCtrls, Vcl.Buttons, System.Win.ScktComp, StreamManager, ZLIBEX,
   sndkey32, IdBaseComponent, Vcl.AppEvnts, Vcl.ComCtrls, Winapi.MMSystem,
-  Registry, Vcl.Menus, Vcl.Mask;
+  Registry, Vcl.Menus, Vcl.Mask, Clipbrd;
 
 type
   TThread_Connection_Main = class(TThread)
@@ -78,6 +78,7 @@ type
     Timeout_Timer: TTimer;
     About_BitBtn: TBitBtn;
     TargetID_MaskEdit: TMaskEdit;
+    Clipboard_Timer: TTimer;
     procedure Connect_BitBtnClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Reconnect_TimerTimer(Sender: TObject);
@@ -97,6 +98,7 @@ type
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure About_BitBtnClick(Sender: TObject);
     procedure TargetID_MaskEditKeyPress(Sender: TObject; var Key: Char);
+    procedure Clipboard_TimerTimer(Sender: TObject);
   private
     { Private declarations }
   public
@@ -118,6 +120,7 @@ var
   Timeout: Integer;
   OldWallpaper: string;
   Accessed, LostConnection: Boolean;
+  OldClipboardText: string;
 
 const
   Host = 'localhost';     // Host of Sockets  (Insert the IP Address or DNS of your Server)
@@ -185,8 +188,11 @@ begin
   frm_Main.ResolutionTargetWidth := 986;
   frm_Main.ResolutionTargetHeight := 600;
 
-  if not(Visible) then
+  if not (Visible) then
+  begin
     Show;
+    Repaint;
+  end;
 
   with frm_RemoteScreen do
   begin
@@ -246,6 +252,25 @@ begin
 
 end;
 
+procedure Tfrm_Main.Clipboard_TimerTimer(Sender: TObject);
+begin
+  try
+    Clipboard.Open;
+
+    if (Clipboard.HasFormat(CF_TEXT)) then
+    begin
+      if not (OldClipboardText = Clipboard.AsText) then
+      begin
+        OldClipboardText := Clipboard.AsText;
+        Main_Socket.Socket.SendText('<|REDIRECT|><|CLIPBOARD|>' + Clipboard.AsText + '<<|');
+      end;
+    end;
+
+  finally
+    Clipboard.Close;
+  end;
+
+end;
 
 // Return size (B, KB, MB or GB)
 function GetSize(bytes: Int64): string;
@@ -363,6 +388,7 @@ begin
   Connect_BitBtn.Enabled := false;
 
   Timeout_Timer.Enabled := false;
+  Clipboard_Timer.Enabled := False;
 
 end;
 
@@ -562,7 +588,19 @@ var
 begin
   s := Socket.ReceiveText;
 
-  SendKeys(PWideChar(s), false);
+  if (Pos('?', s) > 0) then
+  begin
+    if (GetKeyState(VK_SHIFT) < 0) then
+    begin
+      keybd_event(16, 0, KEYEVENTF_KEYUP, 0);
+      SendKeys(PWideChar(s), false);
+      keybd_event(16, 0, 0, 0);
+    end;
+
+  end
+  else
+    SendKeys(PWideChar(s), false);
+
 end;
 
 procedure Tfrm_Main.Main_SocketConnect(Sender: TObject; Socket: TCustomWinSocket);
@@ -814,6 +852,8 @@ begin
                 Status_Label.Caption := 'Access granted!';
                 Viewer := true;
 
+                Clipboard_Timer.Enabled := true;
+
                 ClearConnection;
                 frm_RemoteScreen.Show;
                 Hide;
@@ -969,6 +1009,22 @@ begin
           Mouse_Event(MOUSEEVENTF_ABSOLUTE or MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
         end;
 
+        // Clipboard Remote
+        if (Pos('<|CLIPBOARD|>', s) > 0) then
+        begin
+          s2 := s;
+          Delete(s2, 1, Pos('<|CLIPBOARD|>', s2) + 12);
+
+          s2 := Copy(s2, 1, Pos('<<|', s2) - 1);
+
+          try
+            Clipboard.Open;
+            Clipboard.AsText := s2;
+          finally
+            Clipboard.Close;
+          end;
+        end;
+
 
   // Combo Keys
         if (Pos('<|ALTDOWN|>', s) > 0) then
@@ -1030,6 +1086,7 @@ begin
                 else
                 begin
                   Chat_RichEdit.SelStart := Chat_RichEdit.GetTextLen;
+                  Chat_RichEdit.SelAttributes.Style := [];
                   Chat_RichEdit.SelAttributes.Color := clWhite;
                   Chat_RichEdit.SelText := #13 + '   •   ' + s2;
                 end;

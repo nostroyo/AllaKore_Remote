@@ -101,7 +101,8 @@ begin
   try
 
 
-    { Combo }
+
+     { Combo }
     if (Active) then
     begin
     // Alt
@@ -271,13 +272,15 @@ begin
           106:
             SendSocketKeys('*');
           107:
-            SendSocketKeys('&');
+            SendSocketKeys('+');
           109:
             SendSocketKeys('-');
           110:
-            SendSocketKeys('.');
+            SendSocketKeys(',');
           111:
             SendSocketKeys('/');
+          194:
+            SendSocketKeys('.');
 
           // F1..F12
               112..123:
@@ -285,9 +288,9 @@ begin
 
           186:
             if (GetKeyState(VK_SHIFT) < 0) then
-              SendSocketKeys(':')
+              SendSocketKeys('Ç')
             else
-              SendSocketKeys(';');
+              SendSocketKeys('ç');
           187:
             if (GetKeyState(VK_SHIFT) < 0) then
               SendSocketKeys('+')
@@ -310,41 +313,52 @@ begin
               SendSocketKeys('.');
           191:
             if (GetKeyState(VK_SHIFT) < 0) then
-              SendSocketKeys('?')
+              SendSocketKeys(':')
             else
-              SendSocketKeys('/');
+              SendSocketKeys(';');
           192:
-            if (GetKeyState(VK_SHIFT) < 0) then
-              SendSocketKeys('~')
-            else
-              SendSocketKeys('`');
-          219:
-            if (GetKeyState(VK_SHIFT) < 0) then
-              SendSocketKeys('{')
-            else
-              SendSocketKeys('[');
-          220:
-            if (GetKeyState(VK_SHIFT) < 0) then
-              SendSocketKeys('|')
-            else
-              SendSocketKeys('\');
-          221:
-            if (GetKeyState(VK_SHIFT) < 0) then
-              SendSocketKeys('}')
-            else
-              SendSocketKeys(']');
-          222:
             if (GetKeyState(VK_SHIFT) < 0) then
               SendSocketKeys('"')
             else
               SendSocketKeys('''');
+          193:
+            if (GetKeyState(VK_SHIFT) < 0) then
+              SendSocketKeys('?')
+            else
+              SendSocketKeys('/');
+          219:
+            if (GetKeyState(VK_SHIFT) < 0) then
+              SendSocketKeys('`')
+            else
+              SendSocketKeys('´');
+          220:
+            if (GetKeyState(VK_SHIFT) < 0) then
+              SendSocketKeys('}')
+            else
+              SendSocketKeys(']');
+          221:
+            if (GetKeyState(VK_SHIFT) < 0) then
+              SendSocketKeys('{')
+            else
+              SendSocketKeys('[');
+          222:
+            if (GetKeyState(VK_SHIFT) < 0) then
+              SendSocketKeys('^')
+            else
+              SendSocketKeys('~');
+          226:
+            if (GetKeyState(VK_SHIFT) < 0) then
+              SendSocketKeys('|')
+            else
+              SendSocketKeys('\');
 
         end;
       end;
 
     end;
+
   except
-    exit;
+
   end;
 
 end;

@@ -12936,4 +12936,9 @@ object frm_Main: Tfrm_Main
     Left = 160
     Top = 224
   end
+  object Clipboard_Timer: TTimer
+    OnTimer = Clipboard_TimerTimer
+    Left = 240
+    Top = 224
+  end
 end
