@@ -13,7 +13,7 @@
 }
 
 
-{$R ResFile.res}
+//{$R ResFile.res}
 
 unit Form_Main;
 
@@ -155,30 +155,6 @@ begin
   FreeOnTerminate := true;
 end;
 
-
-// Get current Version
-function GetAppVersionStr: string;
-var
-  Exe: string;
-  Size, Handle: DWORD;
-  Buffer: TBytes;
-  FixedPtr: PVSFixedFileInfo;
-begin
-  Exe := ParamStr(0);
-  Size := GetFileVersionInfoSize(PChar(Exe), Handle);
-  if Size = 0 then
-    RaiseLastOSError;
-  SetLength(Buffer, Size);
-  if not GetFileVersionInfo(PChar(Exe), Handle, Size, Buffer) then
-    RaiseLastOSError;
-  if not VerQueryValue(Buffer, '\', Pointer(FixedPtr), Size) then
-    RaiseLastOSError;
-  Result := Format('%d.%d.%d.%d', [LongRec(FixedPtr.dwFileVersionMS).Hi,  //major
-    LongRec(FixedPtr.dwFileVersionMS).Lo,  //minor
-    LongRec(FixedPtr.dwFileVersionLS).Hi,  //release
-    LongRec(FixedPtr.dwFileVersionLS).Lo]) //build
-end;
-
 function GetWallpaperDirectory: string;
 var
   Reg: TRegistry;
@@ -211,6 +187,12 @@ procedure Tfrm_Main.ClearConnection;
 begin
   frm_Main.ResolutionTargetWidth := 986;
   frm_Main.ResolutionTargetHeight := 600;
+
+  if not (Visible) then
+  begin
+    Show;
+    Repaint;
+  end;
 
   with frm_RemoteScreen do
   begin
@@ -345,18 +327,22 @@ var
   Arc: TStrings;
 begin
   Arc := TStringList.Create;
-  FindResult := FindFirst(FileName + Ext, faArchive, SearchFile);
   try
-    while FindResult = 0 do
-    begin
-      Application.ProcessMessages;
-      Arc.Add(SearchFile.Name);
-      FindResult := FindNext(SearchFile);
+    FindResult := FindFirst(FileName + Ext, faArchive, SearchFile);
+    try
+      while FindResult = 0 do
+      begin
+        Application.ProcessMessages;
+        Arc.Add(SearchFile.Name);
+        FindResult := FindNext(SearchFile);
+      end;
+    finally
+      FindClose(SearchFile)
     end;
+    Result := Arc.Text;
   finally
-    FindClose(SearchFile)
+    FreeAndNil(Arc);
   end;
-  Result := Arc.Text;
 end;
 
 procedure Tfrm_Main.Reconnect;
@@ -386,13 +372,6 @@ begin
   begin
     Accessed := false;
     ChangeWallpaper(OldWallpaper);
-  end;
-
-  // Show main form and repaint
-  if not (Visible) then
-  begin
-    Show;
-    Repaint;
   end;
 
   ClearConnection;
@@ -522,9 +501,11 @@ procedure Tfrm_Main.Connect_BitBtnClick(Sender: TObject);
 begin
   if not (TargetID_MaskEdit.Text = '   -   -   ') then
   begin
+    {$IFNDEF DEBUG}  // I can debug with myself it's easier
     if (TargetID_MaskEdit.Text = MyID) then
       Application.MessageBox('You can not connect with yourself!', 'AllaKore Remote', 16)
     else
+    {$ENDIF}
     begin
       Main_Socket.Socket.SendText('<|FINDID|>' + TargetID_MaskEdit.Text + '<<|');
       TargetID_MaskEdit.Enabled := False;
@@ -577,11 +558,6 @@ end;
 
 procedure Tfrm_Main.FormCreate(Sender: TObject);
 begin
-  // Insert version on Caption of the Form
-  Caption := Caption + ' - ' + GetAppVersionStr;
-
-
-
   // Define Host, Port and Timeout of Sockets
   Main_Socket.Host := Host;
   Main_Socket.Port := Port;
@@ -1295,9 +1271,13 @@ begin
           s2 := Copy(s2, 1, Pos('<<|', s2) - 1);
 
           FileToUpload := TMemoryStream.Create;
-          FileToUpload.LoadFromFile(s2);
+          try
+            FileToUpload.LoadFromFile(s2);
 
-          frm_Main.Files_Socket.Socket.SendText('<|SIZE|>' + intToStr(FileToUpload.Size) + '<<|' + MemoryStreamToString(FileToUpload));
+            frm_Main.Files_Socket.Socket.SendText('<|SIZE|>' + intToStr(FileToUpload.Size) + '<<|' + MemoryStreamToString(FileToUpload));
+          finally
+            FileToUpload.Free;
+          end;
         end;
 
       end;
@@ -1321,157 +1301,52 @@ var
   ReceivingBmp: Boolean;
 begin
   inherited;
+  MyFirstBmp := nil;
+  UnPackStream := nil;
+  MyTempStream := nil;
+  MySecondBmp := nil;
+  MyCompareBmp := nil;
+  PackStream := nil;
+  try
+    MyFirstBmp := TMemoryStream.Create;
+    UnPackStream := TMemoryStream.Create;
+    MyTempStream := TMemoryStream.Create;
+    MySecondBmp := TMemoryStream.Create;
+    MyCompareBmp := TMemoryStream.Create;
+    PackStream := TMemoryStream.Create;
+    ReceivingBmp := false;
 
-  MyFirstBmp := TMemoryStream.Create;
-  UnPackStream := TMemoryStream.Create;
-  MyTempStream := TMemoryStream.Create;
-  MySecondBmp := TMemoryStream.Create;
-  MyCompareBmp := TMemoryStream.Create;
-  PackStream := TMemoryStream.Create;
-  ReceivingBmp := false;
-
-  while Socket.Connected do
-  begin
-    try
-      if (Socket.ReceiveLength > 0) then
-      begin
-
-        s := Socket.ReceiveText;
-
-        if (Pos('<|GETFULLSCREENSHOT|>', s) > 0) then
+    while Socket.Connected do
+    begin
+      try
+        if (Socket.ReceiveLength > 0) then
         begin
 
-          if (Pos('<|NEWRESOLUTION|>', s) > 0) then
+          s := Socket.ReceiveText;
+
+          if (Pos('<|GETFULLSCREENSHOT|>', s) > 0) then
           begin
-            s2 := s;
-            Delete(s2, 1, Pos('<|NEWRESOLUTION|>', s2) + 16);
 
-            ResolutionWidth := StrToInt(Copy(s2, 1, Pos('<|>', s2) - 1));
-            Delete(s2, 1, Pos('<|>', s2) + 2);
-
-            ResolutionHeight := StrToInt(Copy(s2, 1, Pos('<<|', s2) - 1));
-          end
-          else
-          begin
-            ResolutionWidth := Screen.Width;
-            ResolutionHeight := Screen.Height;
-          end;
-
-          frm_Main.Main_Socket.Socket.SendText('<|REDIRECT|><|RESOLUTION|>' + IntToStr(Screen.Width) + '<|>' + IntToStr(Screen.Height) + '<<|');
-
-          ReceiveBmpSize := 0;
-          MyFirstBmp.Clear;
-          UnPackStream.Clear;
-          MyTempStream.Clear;
-          MySecondBmp.Clear;
-          MyCompareBmp.Clear;
-          PackStream.Clear;
-          ReceivingBmp := false;
-
-          Synchronize(
-            procedure
+            if (Pos('<|NEWRESOLUTION|>', s) > 0) then
             begin
-              GetScreenToBmp(false, MyFirstBmp, ResolutionWidth, ResolutionHeight);
-            end);
+              s2 := s;
+              Delete(s2, 1, Pos('<|NEWRESOLUTION|>', s2) + 16);
 
-          MyFirstBmp.Position := 0;
-          PackStream.LoadFromStream(MyFirstBmp);
+              ResolutionWidth := StrToInt(Copy(s2, 1, Pos('<|>', s2) - 1));
+              Delete(s2, 1, Pos('<|>', s2) + 2);
 
-          CompressStream(PackStream);
-          CompressStream(PackStream);
-          PackStream.Position := 0;
-          SendBMPSize := PackStream.Size;
-
-          Socket.SendText('<|SIZE|>' + intToStr(SendBMPSize) + '<<|' + MemoryStreamToString(PackStream));
-        end;
-
-        if (Pos('<|GETPARTSCREENSHOT|>', s) > 0) then
-        begin
-          Synchronize(
-            procedure
-            begin
-              CompareStream(MyFirstBmp, MySecondBmp, MyCompareBmp, ResolutionWidth, ResolutionHeight);
-            end);
-
-          MyCompareBmp.Position := 0;
-          PackStream.LoadFromStream(MyCompareBmp);
-
-          CompressStream(PackStream);
-          CompressStream(PackStream);
-          PackStream.Position := 0;
-          SendBMPSize := PackStream.Size;
-          Socket.SendText('<|SIZE|>' + intToStr(SendBMPSize) + '<<|' + MemoryStreamToString(PackStream));
-        end;
-
-        if not (ReceivingBmp) then
-        begin
-          if (Pos('<|SIZE|>', s) > 0) then
-          begin
-            s2 := s;
-            Delete(s2, 1, Pos('<|SIZE|>', s2) + 7);
-            s2 := Copy(s2, 1, Pos('<<|', s2) - 1);
-
-            ReceiveBmpSize := StrToInt(s2);
-
-            Delete(s, 1, Pos('<<|', s) + 2);
-            ReceivingBmp := true;
-
-            Synchronize(
-              procedure
-              begin
-                frm_RemoteScreen.Caption := 'AllaKore Remote - ' + GetSize(ReceiveBmpSize);
-              end);
-          end;
-        end;
-
-        if (Length(s) > 0) and (ReceivingBmp) then
-        begin
-          MyTempStream.Write(AnsiString(s)[1], Length(s));
-
-          if (MyTempStream.Size >= ReceiveBmpSize) then
-          begin
-
-            Socket.SendText('<|GETPARTSCREENSHOT|>');
-
-            MyTempStream.Position := 0;
-            UnPackStream.Clear;
-            UnPackStream.LoadFromStream(MyTempStream);
-            DeCompressStream(UnPackStream);
-            DeCompressStream(UnPackStream);
-
-            if (MyFirstBmp.Size = 0) then
-            begin
-              MyFirstBmp.CopyFrom(UnPackStream, 0);
-              MyFirstBmp.Position := 0;
-
-              Synchronize(
-                procedure
-                begin
-                  frm_RemoteScreen.Screen_Image.Picture.Bitmap.LoadFromStream(MyFirstBmp);
-                  if (frm_RemoteScreen.Resize_CheckBox.Checked) then
-                    ResizeBmp(frm_RemoteScreen.Screen_Image.Picture.Bitmap, frm_RemoteScreen.Screen_Image.Width, frm_RemoteScreen.Screen_Image.Height);
-                  frm_RemoteScreen.Caption := 'AllaKore Remote';
-                end);
-
+              ResolutionHeight := StrToInt(Copy(s2, 1, Pos('<<|', s2) - 1));
             end
             else
             begin
-              MyCompareBmp.Clear;
-              MySecondBmp.Clear;
-
-              MyCompareBmp.CopyFrom(UnPackStream, 0);
-              ResumeStream(MyFirstBmp, MySecondBmp, MyCompareBmp);
-
-              Synchronize(
-                procedure
-                begin
-                  frm_RemoteScreen.Screen_Image.Picture.Bitmap.LoadFromStream(MySecondBmp);
-                  if (frm_RemoteScreen.Resize_CheckBox.Checked) then
-                    ResizeBmp(frm_RemoteScreen.Screen_Image.Picture.Bitmap, frm_RemoteScreen.Screen_Image.Width, frm_RemoteScreen.Screen_Image.Height);
-                end);
+              ResolutionWidth := Screen.Width;
+              ResolutionHeight := Screen.Height;
             end;
 
+            frm_Main.Main_Socket.Socket.SendText('<|REDIRECT|><|RESOLUTION|>' + IntToStr(Screen.Width) + '<|>' + IntToStr(Screen.Height) + '<<|');
+
             ReceiveBmpSize := 0;
+            MyFirstBmp.Clear;
             UnPackStream.Clear;
             MyTempStream.Clear;
             MySecondBmp.Clear;
@@ -1479,14 +1354,133 @@ begin
             PackStream.Clear;
             ReceivingBmp := false;
 
+            Synchronize(
+              procedure
+              begin
+                GetScreenToBmp(false, MyFirstBmp, ResolutionWidth, ResolutionHeight);
+              end);
+
+            MyFirstBmp.Position := 0;
+            PackStream.LoadFromStream(MyFirstBmp);
+
+            CompressStream(PackStream);
+            CompressStream(PackStream);
+            PackStream.Position := 0;
+            SendBMPSize := PackStream.Size;
+
+            Socket.SendText('<|SIZE|>' + intToStr(SendBMPSize) + '<<|' + MemoryStreamToString(PackStream));
+          end;
+
+          if (Pos('<|GETPARTSCREENSHOT|>', s) > 0) then
+          begin
+            Synchronize(
+              procedure
+              begin
+                CompareStream(MyFirstBmp, MySecondBmp, MyCompareBmp, ResolutionWidth, ResolutionHeight);
+              end);
+
+            MyCompareBmp.Position := 0;
+            PackStream.LoadFromStream(MyCompareBmp);
+
+            CompressStream(PackStream);
+            CompressStream(PackStream);
+            PackStream.Position := 0;
+            SendBMPSize := PackStream.Size;
+            Socket.SendText('<|SIZE|>' + intToStr(SendBMPSize) + '<<|' + MemoryStreamToString(PackStream));
+          end;
+
+          if not (ReceivingBmp) then
+          begin
+            if (Pos('<|SIZE|>', s) > 0) then
+            begin
+              s2 := s;
+              Delete(s2, 1, Pos('<|SIZE|>', s2) + 7);
+              s2 := Copy(s2, 1, Pos('<<|', s2) - 1);
+
+              ReceiveBmpSize := StrToInt(s2);
+
+              Delete(s, 1, Pos('<<|', s) + 2);
+              ReceivingBmp := true;
+
+              Synchronize(
+                procedure
+                begin
+                  frm_RemoteScreen.Caption := 'AllaKore Remote - ' + GetSize(ReceiveBmpSize);
+                end);
+            end;
+          end;
+
+          if (Length(s) > 0) and (ReceivingBmp) then
+          begin
+            MyTempStream.Write(AnsiString(s)[1], Length(s));
+
+            if (MyTempStream.Size >= ReceiveBmpSize) then
+            begin
+
+              Socket.SendText('<|GETPARTSCREENSHOT|>');
+
+              MyTempStream.Position := 0;
+              UnPackStream.Clear;
+              UnPackStream.LoadFromStream(MyTempStream);
+              DeCompressStream(UnPackStream);
+              DeCompressStream(UnPackStream);
+
+              if (MyFirstBmp.Size = 0) then
+              begin
+                MyFirstBmp.CopyFrom(UnPackStream, 0);
+                MyFirstBmp.Position := 0;
+
+                Synchronize(
+                  procedure
+                  begin
+                    frm_RemoteScreen.Screen_Image.Picture.Bitmap.LoadFromStream(MyFirstBmp);
+                    if (frm_RemoteScreen.Resize_CheckBox.Checked) then
+                      ResizeBmp(frm_RemoteScreen.Screen_Image.Picture.Bitmap, frm_RemoteScreen.Screen_Image.Width, frm_RemoteScreen.Screen_Image.Height);
+                    frm_RemoteScreen.Caption := 'AllaKore Remote';
+                  end);
+
+              end
+              else
+              begin
+                MyCompareBmp.Clear;
+                MySecondBmp.Clear;
+
+                MyCompareBmp.CopyFrom(UnPackStream, 0);
+                ResumeStream(MyFirstBmp, MySecondBmp, MyCompareBmp);
+
+                Synchronize(
+                  procedure
+                  begin
+                    frm_RemoteScreen.Screen_Image.Picture.Bitmap.LoadFromStream(MySecondBmp);
+                    if (frm_RemoteScreen.Resize_CheckBox.Checked) then
+                      ResizeBmp(frm_RemoteScreen.Screen_Image.Picture.Bitmap, frm_RemoteScreen.Screen_Image.Width, frm_RemoteScreen.Screen_Image.Height);
+                  end);
+              end;
+
+              ReceiveBmpSize := 0;
+              UnPackStream.Clear;
+              MyTempStream.Clear;
+              MySecondBmp.Clear;
+              MyCompareBmp.Clear;
+              PackStream.Clear;
+              ReceivingBmp := false;
+
+            end;
+
           end;
 
         end;
-
+      except
       end;
-    except
+      Sleep(5); // Avoids using 100% CPU
     end;
-    Sleep(5); // Avoids using 100% CPU
+  finally
+    MyFirstBmp.Free;
+    UnPackStream.Free;
+    MyTempStream.Free;
+    MySecondBmp.Free;
+    MyCompareBmp.Free;
+    PackStream.Free;
   end;
 end;
 

@@ -1,6 +1,16 @@
 program AllaKore_Remote_Client;
 
 uses
+  EMemLeaks,
+  EResLeaks,
+  EDialogWinAPIMSClassic,
+  EDialogWinAPIEurekaLogDetailed,
+  EDialogWinAPIStepsToReproduce,
+  EDebugExports,
+  EFixSafeCallException,
+  EMapWin32,
+  EAppVCL,
+  ExceptionLog7,
   Vcl.Forms,
   Form_Main in 'Form_Main.pas' {frm_Main},
   Form_Password in 'Form_Password.pas' {frm_Password},
@@ -15,7 +25,6 @@ uses
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
-  TStyleManager.TrySetStyle('Carbon');
   Application.CreateForm(Tfrm_Main, frm_Main);
   Application.CreateForm(Tfrm_Password, frm_Password);
   Application.CreateForm(Tfrm_RemoteScreen, frm_RemoteScreen);
