@@ -41,11 +41,3 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
-
-
-# Delphi Files
-*.dcu
-__history/
-
-# Bin
-*.exe
