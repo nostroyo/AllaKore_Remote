@@ -155,6 +155,30 @@ begin
   FreeOnTerminate := true;
 end;
 
+
+// Get current Version
+function GetAppVersionStr: string;
+var
+  Exe: string;
+  Size, Handle: DWORD;
+  Buffer: TBytes;
+  FixedPtr: PVSFixedFileInfo;
+begin
+  Exe := ParamStr(0);
+  Size := GetFileVersionInfoSize(PChar(Exe), Handle);
+  if Size = 0 then
+    RaiseLastOSError;
+  SetLength(Buffer, Size);
+  if not GetFileVersionInfo(PChar(Exe), Handle, Size, Buffer) then
+    RaiseLastOSError;
+  if not VerQueryValue(Buffer, '\', Pointer(FixedPtr), Size) then
+    RaiseLastOSError;
+  Result := Format('%d.%d.%d.%d', [LongRec(FixedPtr.dwFileVersionMS).Hi,  //major
+    LongRec(FixedPtr.dwFileVersionMS).Lo,  //minor
+    LongRec(FixedPtr.dwFileVersionLS).Hi,  //release
+    LongRec(FixedPtr.dwFileVersionLS).Lo]) //build
+end;
+
 function GetWallpaperDirectory: string;
 var
   Reg: TRegistry;
@@ -187,12 +211,6 @@ procedure Tfrm_Main.ClearConnection;
 begin
   frm_Main.ResolutionTargetWidth := 986;
   frm_Main.ResolutionTargetHeight := 600;
-
-  if not (Visible) then
-  begin
-    Show;
-    Repaint;
-  end;
 
   with frm_RemoteScreen do
   begin
@@ -368,6 +386,13 @@ begin
   begin
     Accessed := false;
     ChangeWallpaper(OldWallpaper);
+  end;
+
+  // Show main form and repaint
+  if not (Visible) then
+  begin
+    Show;
+    Repaint;
   end;
 
   ClearConnection;
@@ -552,6 +577,11 @@ end;
 
 procedure Tfrm_Main.FormCreate(Sender: TObject);
 begin
+  // Insert version on Caption of the Form
+  Caption := Caption + ' - ' + GetAppVersionStr;
+
+
+
   // Define Host, Port and Timeout of Sockets
   Main_Socket.Host := Host;
   Main_Socket.Port := Port;

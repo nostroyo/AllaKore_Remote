@@ -55,7 +55,6 @@ type
   private
     AThread_Desktop: TIdPeerThread;
     AThread_Desktop_Target: TIdPeerThread;
-    AThread_Main_OnDesktop: TIdPeerThread;
     MyID: string;
   public
     constructor Create(AThread: TIdPeerThread; ID: string); overload;
@@ -282,18 +281,20 @@ var
 begin
   inherited;
 
-  try
-    while AThread_Define.Connection.Connected do
-    begin
+  while AThread_Define.Connection.Connected do
+  begin
+    try
       s := AThread_Define.Connection.CurrentReadBuffer;
 
+      if (Length(s) < 1) then
+        Break; // Break the while
       if (Pos('<|MAINSOCKET|>', s) > 0) then
       begin
       // Create the Thread for Main Socket
         ThreadMain := TThreadConnection_Main.Create(AThread_Define);
         ThreadMain.Resume;
 
-        Destroy; // Destroy this Thread
+        break; // Break the while
       end;
 
       if (Pos('<|DESKTOPSOCKET|>', s) > 0) then
@@ -307,7 +308,7 @@ begin
         ThreadDesktop := TThreadConnection_Desktop.Create(AThread_Define, ID);
         ThreadDesktop.Resume;
 
-        Destroy; // Destroy this Thread
+        break; // Break the while
       end;
 
       if (Pos('<|KEYBOARDSOCKET|>', s) > 0) then
@@ -321,7 +322,7 @@ begin
         ThreadKeyboard := TThreadConnection_Keyboard.Create(AThread_Define, ID);
         ThreadKeyboard.Resume;
 
-        Destroy; // Destroy this Thread
+        break; // Break the while
       end;
 
       if (Pos('<|FILESSOCKET|>', s) > 0) then
@@ -335,11 +336,11 @@ begin
         ThreadFiles := TThreadConnection_Files.Create(AThread_Define, ID);
         ThreadFiles.Resume;
 
-        Destroy; // Destroy this Thread
+        break; // Break the while
       end;
+    except
     end;
-  except
-    Destroy;
+    Sleep(5);
   end;
 
 end;
@@ -384,9 +385,8 @@ begin
 
       if (Length(s) < 1) then
       begin
-        L := FindListItemID(ID);
-        L.Delete;
-        AThread_Main_Target.Connection.Write('<|DISCONNECTED|>');
+        if (AThread_Main_Target <> nil) then
+          AThread_Main_Target.Connection.Write('<|DISCONNECTED|>');
         Break;
       end;
 
@@ -481,7 +481,6 @@ begin
     except
 
     end;
-    
     Sleep(5);
   end;
 
@@ -523,15 +522,16 @@ begin
   inherited;
 
   L := FindListItemID(MyID);
-  AThread_Main_OnDesktop := (L.SubItems.Objects[0] as TThreadConnection_Main).AThread_Main;
   L.SubItems.Objects[1] := TObject(Self);
 
   while AThread_Desktop.Connection.Connected do
   begin
+
+    s := AThread_Desktop.Connection.CurrentReadBuffer;
+
+    if (Length(s) < 1) then
+      break;
     try
-      s := AThread_Desktop.Connection.CurrentReadBuffer;
-
-
       AThread_Desktop_Target.Connection.Write(s);
     except
     end;
@@ -553,14 +553,15 @@ begin
 
   while AThread_Keyboard.Connection.Connected do
   begin
+
+    s := AThread_Keyboard.Connection.CurrentReadBuffer;
+
+    if (Length(s) < 1) then
+      break;
     try
-      s := AThread_Keyboard.Connection.CurrentReadBuffer;
-
-
       AThread_Keyboard_Target.Connection.Write(s);
     except
     end;
-
     Sleep(5);
   end;
 
@@ -580,13 +581,15 @@ begin
 
   while AThread_Files.Connection.Connected do
   begin
-    try
-      s := AThread_Files.Connection.CurrentReadBuffer;
 
+    s := AThread_Files.Connection.CurrentReadBuffer;
+
+    if (Length(s) < 1) then
+      break;
+    try
       AThread_Files_Target.Connection.Write(s);
     except
     end;
-
     Sleep(5);
   end;
 
@@ -606,16 +609,18 @@ var
   i: Integer;
 begin
   i := 0;
+
   while i < Connections_ListView.Items.Count do
   begin
     try
       (Connections_ListView.Items.Item[i].SubItems.Objects[0] as TThreadConnection_Main).AThread_Main.Connection.Write('<|PING|>');
       (Connections_ListView.Items.Item[i].SubItems.Objects[0] as TThreadConnection_Main).StartPing := GetTickCount;
+
+      Inc(i);
     except
       Connections_ListView.Items.Item[i].Delete;
       Dec(i);
     end;
-    Inc(i);
   end;
 
 end;
