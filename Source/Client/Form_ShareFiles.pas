@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ImgList,
-  Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Buttons;
+  Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Buttons, System.ImageList;
 
 type
   Tfrm_ShareFiles = class(TForm)
@@ -54,6 +54,9 @@ implementation
 uses
   Form_Main;
 
+resourcestring
+  StrReturn = 'Return';
+
 function MemoryStreamToString(M: TMemoryStream): AnsiString;
 begin
   SetString(Result, PAnsiChar(M.Memory), M.Size);
@@ -99,7 +102,7 @@ begin
 
   if (ShareFiles_ListView.Selected.ImageIndex = 0) or (ShareFiles_ListView.Selected.ImageIndex = 1) then
   begin
-    if (ShareFiles_ListView.Selected.Caption = 'Return') then
+    if (ShareFiles_ListView.Selected.Caption = StrReturn) then
     begin
       Directory := Directory_Edit.Text;
       Delete(Directory, Length(Directory), Length(Directory));

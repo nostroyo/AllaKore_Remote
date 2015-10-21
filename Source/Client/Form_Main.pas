@@ -13,7 +13,7 @@
 }
 
 
-//{$R ResFile.res}
+
 
 unit Form_Main;
 
@@ -128,11 +128,44 @@ const
   ConnectionTimeout = 60; // Timeout of connection (in secound)
 
 implementation
-
+{$R ResFile.res}
 {$R *.dfm}
 
 uses
   Form_Password, Form_RemoteScreen, Form_Chat, Form_ShareFiles;
+
+resourcestring
+  // Ready to translate
+  StrAboutText1 = 'This software has created by Maickonn Richard and source ' +
+  'code are free!';
+  StrAboutText2 = 'Any questions, contact-me: senjaxus@gmail.com';
+  StrAboutText3 = 'My Github: https://www.github.com/Senjaxus';
+  StrAboutTitle = 'About AllaKore Remote';
+  StrSizeDownload = 'Size: 0 B / 0 B';
+  StrChat = 'AllaKore Remote - Chat';
+  StrOffline = 'Offline';
+  StrReceiving = 'Receiving...';
+  StrFindingID = 'Finding the ID...';
+  StrErrorYourself = 'You can not connect with yourself!';
+  StrAppTitle = 'AllaKore Remote';
+  StrLostConnection = 'Lost connection to PC!';
+  StrConnected = 'You are connected!';
+  StrConnecting = 'Connecting to Server...';
+  StrConnectError = 'Failed connect to Server.';
+  StrConnectedSupport = 'Connected support!';
+  StrWaitingForAuth = 'Waiting for authentication...';
+  StrIDError = 'ID does nor exists.';
+  StrWrongPassword = 'Wrong password!';
+  StrPCIsBusy = 'PC is Busy!';
+  StrAccessGranted = 'Access granted!';
+  StrHeSay = 'He say:';
+  StrReturn = 'Return';
+  StrFileSent = 'File sent!';
+  StrDownloadTitle = 'AllaKore Remote - Share Files';
+  StrAllaKoreRemote = 'AllaKore Remote';
+  StrSize = 'Size: ';
+  StrDownloadComplete = 'Download complete!';
+  StrShareFiles = ' - Share Files';
 
 constructor TThread_Connection_Main.Create(aSocket: TCustomWinSocket);
 begin
@@ -180,7 +213,7 @@ end;
 
 procedure Tfrm_Main.About_BitBtnClick(Sender: TObject);
 begin
-  Application.MessageBox('This software has created by Maickonn Richard and source code are free!' + #13 + #13'Any questions, contact-me: senjaxus@gmail.com' + #13#13 + 'My Github: https://www.github.com/Senjaxus', 'About AllaKore Remote', 64);
+  Application.MessageBox(PChar(StrAboutText1 + sLineBreak + StrAboutText2 + sLineBreak + StrAboutText3), PChar(StrAboutTitle), 64);
 end;
 
 procedure Tfrm_Main.ClearConnection;
@@ -218,8 +251,8 @@ begin
     Upload_BitBtn.Enabled := true;
     Download_ProgressBar.Position := 0;
     Upload_ProgressBar.Position := 0;
-    SizeDownload_Label.Caption := 'Size: 0 B / 0 B';
-    SizeUpload_Label.Caption := 'Size: 0 B / 0 B';
+    SizeDownload_Label.Caption := StrSizeDownload;
+    SizeUpload_Label.Caption := StrSizeDownload;
 
     Directory_Edit.Text := 'C:\';
     ShareFiles_ListView.Items.Clear;
@@ -241,7 +274,7 @@ begin
     Chat_RichEdit.SelStart := Chat_RichEdit.GetTextLen;
     Chat_RichEdit.SelAttributes.Style := [fsBold];
     Chat_RichEdit.SelAttributes.Color := clWhite;
-    Chat_RichEdit.SelText := 'AllaKore Remote - Chat' + #13 + #13;
+    Chat_RichEdit.SelText := StrChat + #13 + #13;
 
     FirstMessage := true;
     LastMessageAreYou := false;
@@ -380,10 +413,10 @@ end;
 procedure Tfrm_Main.SetOffline;
 begin
 
-  YourID_Edit.Text := 'Offline';
+  YourID_Edit.Text := StrOffline;
   YourID_Edit.Enabled := false;
 
-  YourPassword_Edit.Text := 'Offline';
+  YourPassword_Edit.Text := StrOffline;
   YourPassword_Edit.Enabled := false;
 
   TargetID_MaskEdit.Clear;
@@ -400,10 +433,10 @@ procedure SetConnected;
 begin
   with frm_Main do
   begin
-    YourID_Edit.Text := 'Receiving...';
+    YourID_Edit.Text := StrReceiving;
     YourID_Edit.Enabled := false;
 
-    YourPassword_Edit.Text := 'Receiving...';
+    YourPassword_Edit.Text := StrReceiving;
     YourPassword_Edit.Enabled := false;
 
     TargetID_MaskEdit.Clear;
@@ -503,7 +536,7 @@ begin
   begin
     {$IFNDEF DEBUG}  // I can debug with myself it's easier
     if (TargetID_MaskEdit.Text = MyID) then
-      Application.MessageBox('You can not connect with yourself!', 'AllaKore Remote', 16)
+      Application.MessageBox(StrErrorYourself, StrAppTitle, 16)
     else
     {$ENDIF}
     begin
@@ -511,7 +544,7 @@ begin
       TargetID_MaskEdit.Enabled := False;
       Connect_BitBtn.Enabled := false;
       Status_Image.Picture.Assign(Image1.Picture);
-      Status_Label.Caption := 'Finding the ID...';
+      Status_Label.Caption := StrFindingID;
     end;
   end;
 end;
@@ -616,14 +649,14 @@ begin
   if (LostConnection) then
   begin
     Status_Image.Picture.Assign(Image2.Picture);
-    Status_Label.Caption := 'Lost connection to PC!';
+    Status_Label.Caption := StrLostConnection;
     FlashWindow(Handle, true);
     LostConnection := false;
   end
   else
   begin
     Status_Image.Picture.Assign(Image3.Picture);
-    Status_Label.Caption := 'You are connected!';
+    Status_Label.Caption := StrConnected;
   end;
 
   Timeout := 0;
@@ -640,7 +673,7 @@ end;
 procedure Tfrm_Main.Main_SocketConnecting(Sender: TObject; Socket: TCustomWinSocket);
 begin
   Status_Image.Picture.Assign(Image1.Picture);
-  Status_Label.Caption := 'Connecting to Server...';
+  Status_Label.Caption := StrConnecting;
 end;
 
 procedure Tfrm_Main.Main_SocketDisconnect(Sender: TObject; Socket: TCustomWinSocket);
@@ -649,7 +682,7 @@ begin
     frm_RemoteScreen.Close;
   SetOffline;
   Status_Image.Picture.Assign(Image2.Picture);
-  Status_Label.Caption := 'Failed connect to Server.';
+  Status_Label.Caption := StrConnectError;
   CloseSockets;
 end;
 
@@ -660,7 +693,7 @@ begin
     frm_RemoteScreen.Close;
   SetOffline;
   Status_Image.Picture.Assign(Image2.Picture);
-  Status_Label.Caption := 'Failed connect to Server.';
+  Status_Label.Caption := StrConnectError;
   CloseSockets;
 end;
 
@@ -778,7 +811,7 @@ begin
                 TargetID_MaskEdit.Enabled := false;
                 Connect_BitBtn.Enabled := false;
                 Status_Image.Picture.Assign(frm_Main.Image3.Picture);
-                Status_Label.Caption := 'Connected support!';
+                Status_Label.Caption := StrConnectedSupport;
               end;
             end);
           Accessed := true;
@@ -791,7 +824,7 @@ begin
             begin
               with frm_Main do
               begin
-                frm_Main.Status_Label.Caption := 'Waiting for authentication...';
+                frm_Main.Status_Label.Caption := StrWaitingForAuth;
                 frm_Password.ShowModal;
               end;
             end);
@@ -805,7 +838,7 @@ begin
               with frm_Main do
               begin
                 Status_Image.Picture.Assign(frm_Main.Image2.Picture);
-                Status_Label.Caption := 'ID does nor exists.';
+                Status_Label.Caption := StrIDError;
                 TargetID_MaskEdit.Enabled := true;
                 Connect_BitBtn.Enabled := true;
                 TargetID_MaskEdit.SetFocus;
@@ -822,7 +855,7 @@ begin
               with frm_Main do
               begin
                 Status_Image.Picture.Assign(Image2.Picture);
-                Status_Label.Caption := 'Wrong password!';
+                Status_Label.Caption := StrWrongPassword;
                 TargetID_MaskEdit.Enabled := true;
                 Connect_BitBtn.Enabled := true;
                 TargetID_MaskEdit.SetFocus;
@@ -839,7 +872,7 @@ begin
               with frm_Main do
               begin
                 Status_Image.Picture.Assign(Image2.Picture);
-                Status_Label.Caption := 'PC is Busy!';
+                Status_Label.Caption := StrPCIsBusy;
                 TargetID_MaskEdit.Enabled := true;
                 Connect_BitBtn.Enabled := true;
                 TargetID_MaskEdit.SetFocus;
@@ -855,7 +888,7 @@ begin
               with frm_Main do
               begin
                 Status_Image.Picture.Assign(Image3.Picture);
-                Status_Label.Caption := 'Access granted!';
+                Status_Label.Caption := StrAccessGranted;
                 Viewer := true;
 
                 Clipboard_Timer.Enabled := true;
@@ -1073,7 +1106,7 @@ begin
                   Chat_RichEdit.SelStart := Chat_RichEdit.GetTextLen;
                   Chat_RichEdit.SelAttributes.Style := [fsBold];
                   Chat_RichEdit.SelAttributes.Color := clGreen;
-                  Chat_RichEdit.SelText := #13 + #13 + 'He say:';
+                  Chat_RichEdit.SelText := #13 + #13 + StrHeSay;
                   FirstMessage := false;
                 end;
 
@@ -1083,7 +1116,7 @@ begin
                   Chat_RichEdit.SelStart := Chat_RichEdit.GetTextLen;
                   Chat_RichEdit.SelAttributes.Style := [fsBold];
                   Chat_RichEdit.SelAttributes.Color := clGreen;
-                  Chat_RichEdit.SelText := #13 + #13 + 'He say:' + #13;
+                  Chat_RichEdit.SelText := #13 + #13 + StrHeSay + #13;
 
                   Chat_RichEdit.SelStart := Chat_RichEdit.GetTextLen;
                   Chat_RichEdit.SelAttributes.Color := clWhite;
@@ -1162,7 +1195,7 @@ begin
                 L := frm_ShareFiles.ShareFiles_ListView.Items.Add;
                 if (FoldersAndFiles.Strings[i] = '..') then
                 begin
-                  L.Caption := 'Return';
+                  L.Caption := StrReturn;
                   L.ImageIndex := 0;
                 end
                 else
@@ -1250,7 +1283,7 @@ begin
                 Upload_BitBtn.Enabled := True;
                 ShareFiles_ListView.Enabled := false;
                 Directory_Edit.Enabled := false;
-                frm_ShareFiles.SizeUpload_Label.Caption := 'Size: 0 B / 0 B';
+                frm_ShareFiles.SizeUpload_Label.Caption := StrSizeDownload;
               end;
             end);
 
@@ -1259,7 +1292,7 @@ begin
           Synchronize(
             procedure
             begin
-              Application.MessageBox('File sent!', 'AllaKore Remote - Share Files', 64);
+              Application.MessageBox(PChar(StrFileSent), PChar(StrDownloadTitle), 64);
             end);
         end;
 
@@ -1405,7 +1438,7 @@ begin
               Synchronize(
                 procedure
                 begin
-                  frm_RemoteScreen.Caption := 'AllaKore Remote - ' + GetSize(ReceiveBmpSize);
+                  frm_RemoteScreen.Caption := StrAllaKoreRemote + ' - ' + GetSize(ReceiveBmpSize);
                 end);
             end;
           end;
@@ -1436,7 +1469,7 @@ begin
                     frm_RemoteScreen.Screen_Image.Picture.Bitmap.LoadFromStream(MyFirstBmp);
                     if (frm_RemoteScreen.Resize_CheckBox.Checked) then
                       ResizeBmp(frm_RemoteScreen.Screen_Image.Picture.Bitmap, frm_RemoteScreen.Screen_Image.Width, frm_RemoteScreen.Screen_Image.Height);
-                    frm_RemoteScreen.Caption := 'AllaKore Remote';
+                    frm_RemoteScreen.Caption := StrAllaKoreRemote;
                   end);
 
               end
@@ -1531,7 +1564,7 @@ begin
                 begin
                   frm_ShareFiles.Download_ProgressBar.Max := FileSize;
                   frm_ShareFiles.Download_ProgressBar.Position := 0;
-                  frm_ShareFiles.SizeDownload_Label.Caption := 'Size: ' + getSize(FileStream.Size) + ' / ' + GetSize(FileSize);
+                  frm_ShareFiles.SizeDownload_Label.Caption := StrSize + getSize(FileStream.Size) + ' / ' + GetSize(FileSize);
                 end);
 
             Delete(s, 1, Pos('<<|', s) + 2);
@@ -1547,7 +1580,7 @@ begin
               procedure
               begin
                 frm_ShareFiles.Download_ProgressBar.Position := FileStream.Size;
-                frm_ShareFiles.SizeDownload_Label.Caption := 'Size: ' + getSize(FileStream.Size) + ' / ' + GetSize(FileSize);
+                frm_ShareFiles.SizeDownload_Label.Caption := StrSize + getSize(FileStream.Size) + ' / ' + GetSize(FileSize);
               end)
           else
             frm_Main.Main_Socket.Socket.SendText('<|REDIRECT|><|UPLOADPROGRESS|>' + intToStr(FileStream.Size) + '<<|');
@@ -1569,8 +1602,8 @@ begin
                 begin
                   frm_ShareFiles.Download_ProgressBar.Position := 0;
                   frm_ShareFiles.Download_BitBtn.Enabled := true;
-                  frm_ShareFiles.SizeDownload_Label.Caption := 'Size: 0 B / 0 B';
-                  Application.MessageBox('Download complete!', 'AllaKore Remote - Share Files', 64);
+                  frm_ShareFiles.SizeDownload_Label.Caption := StrSizeDownload;
+                  Application.MessageBox(PChar(StrDownloadComplete), PChar(StrAllaKoreRemote + StrShareFiles), 64);
                 end);
 
             ReceivingFile := False;

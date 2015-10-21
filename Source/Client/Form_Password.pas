@@ -35,6 +35,9 @@ implementation
 uses
   Form_RemoteScreen, Form_Main;
 
+resourcestring
+  StrAccessCanceled = 'Access canceled.';
+
 procedure Tfrm_Password.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   if (Canceled) then
@@ -42,7 +45,7 @@ begin
     with frm_Main do
     begin
       Status_Image.Picture.Assign(Image3.Picture);
-      Status_Label.Caption := 'Access canceled.';
+      Status_Label.Caption := StrAccessCanceled;
       TargetID_MaskEdit.Enabled := true;
       Connect_BitBtn.Enabled := true;
     end;
