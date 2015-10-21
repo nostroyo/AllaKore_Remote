@@ -1,6 +1,7 @@
 program AllaKore_Remote_Client;
 
 uses
+  {$IFDEF YTS}  
   EMemLeaks,
   EResLeaks,
   EDialogWinAPIMSClassic,
@@ -11,6 +12,7 @@ uses
   EMapWin32,
   EAppVCL,
   ExceptionLog7,
+  {$ENDIF}
   Vcl.Forms,
   Form_Main in 'Form_Main.pas' {frm_Main},
   Form_Password in 'Form_Password.pas' {frm_Password},
